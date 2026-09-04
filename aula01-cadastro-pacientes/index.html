@@ -6,8 +6,11 @@
         <title>Cadastro de Pacientes</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
         <link rel="stylesheet" href="css/style.css" />
+		<script src="https://unpkg.com/imask"></script>
     </head>
     <body>
+		<script>
+	</script>
         <div class="container py-5">
             <h1 class="mb-4">Cadastro de Pacientes</h1>
 
@@ -57,7 +60,23 @@
                 </tbody>
             </table>
         </div>
+<script>
+            // 1. Seleciona o elemento HTML (agora ele já existe na tela!)
+            const element = document.getElementById('telefone');
+            
+            // 2. Define as opções da máscara
+            const maskOptions = {
+                mask: [
+                    { mask: '(00) 0000-0000' },  // Telefone fixo
+                    { mask: '(00) 00000-0000' }  // Celular
+                ]
+            };
+            
+            // 3. Inicializa o IMask
+            const mask = IMask(element, maskOptions);
+        </script>
 
+        <script src="js/app.js"></script>
         <script src="js/app.js"></script>
     </body>
 </html>
