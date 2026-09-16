@@ -1,75 +1,105 @@
-const pacientes = [];
+// ==========================================
+// app.js - Cadastro de Pacientes
+// ==========================================
 
-const formulario = document.getElementById('form-paciente');
-const tabela = document.getElementById('tabela-pacientes');
-const mensagemCarregando = document.getElementById('carregando');
+// Variáveis globais para os contadores de origem
+let contadorJson = 0;
+let contadorManual = 0;
 
-function adicionarPaciente(nome, email, nascimento) {
-	pacientes.push({ nome, email, nascimento });
-}
+// Capturando os elementos do DOM (HTML)
+const tabela = document.querySelector("#tabela-pacientes");
+const areaMensagem = document.querySelector("#mensagem-usuario");
+const spanContadorJson = document.querySelector("#contador-json");
+const spanContadorManual = document.querySelector("#contador-manual");
+const formAdicionar = document.querySelector("#form-adiciona");
 
-function renderizarTabela() {
-	tabela.innerHTML = '';
+// Função auxiliar para criar e inserir uma linha na tabela
+function adicionarPacienteNaTabela(paciente) {
+    const tr = document.createElement("tr");
 
-	pacientes.forEach((paciente) => {
-		const linha = document.createElement('tr');
-		linha.innerHTML = `
-      <td>${paciente.nome}</td>
-      <td>${paciente.email}</td>
-      <td>${formatarData(paciente.nascimento)}</td>
+    // Cria as colunas (você pode adaptar de acordo com as chaves do seu JSON)
+    tr.innerHTML = `
+        <td>${paciente.nome}</td>
+        <td>${paciente.peso}</td>
+        <td>${paciente.altura}</td>
+        <td>${paciente.gordura}</td>
+        <td>${paciente.imc}</td>
     `;
-		tabela.appendChild(linha);
-	});
+    
+    tabela.appendChild(tr);
 }
 
-function formatarData(dataISO) {
-	const [ano, mes, dia] = dataISO.split('-');
-	return `${dia}/${mes}/${ano}`;
+// Função principal de busca (Assíncrona)
+async function buscarPacientes() {
+    // 1. Preparação e exibição de carregamento
+    tabela.innerHTML = "";
+    areaMensagem.textContent = "Carregando pacientes...";
+    areaMensagem.style.color = "blue";
+
+    try {
+        // 2. Simulação de Latência (1 segundo)
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // 3. Busca dos dados via Fetch
+        const resposta = await fetch("data/pacientes.json");
+
+        // Verifica se houve erro de rota (ex: Erro 404)
+        if (!resposta.ok) {
+            throw new Error(`Arquivo não encontrado (Status: ${resposta.status})`);
+        }
+
+        // Converte a resposta para JSON
+        const pacientes = await resposta.json();
+
+        // 4. Tratamento de Lista Vazia
+        if (pacientes.length === 0) {
+            areaMensagem.textContent = "Nenhum paciente cadastrado ainda.";
+            areaMensagem.style.color = "orange";
+            return; // Encerra a função aqui
+        }
+
+        // Remove a mensagem de carregamento se deu tudo certo
+        areaMensagem.textContent = "";
+
+        // Adiciona cada paciente retornado na tabela
+        pacientes.forEach(paciente => {
+            adicionarPacienteNaTabela(paciente);
+        });
+
+        // 5. Atualiza o contador de origem JSON
+        contadorJson += pacientes.length;
+        if (spanContadorJson) spanContadorJson.textContent = contadorJson;
+
+    } catch (erro) {
+        // 6. Tratamento de Erro Amigável para o Usuário
+        areaMensagem.textContent = `Poxa, não foi possível carregar os dados: ${erro.message}`;
+        areaMensagem.style.color = "red";
+    }
 }
 
-// Nova função: busca os pacientes iniciais a partir do arquivo JSON
-async function carregarPacientesIniciais() {
-	try {
-		const resposta = await fetch('data/pacientes.json');
-		console.log(resposta);
+// Lógica de cadastro manual de novos pacientes
+formAdicionar.addEventListener("submit", function(event) {
+    event.preventDefault(); // Evita o recarregamento padrão da página
 
-		// Nem toda resposta é sucesso — precisamos checar antes de usar
-		if (!resposta.ok) {
-			throw new Error(`Erro HTTP: ${resposta.status}`);
-		}
+    // Captura os dados digitados
+    const pacienteAdicionado = {
+        nome: formAdicionar.nome.value,
+        peso: formAdicionar.peso.value,
+        altura: formAdicionar.altura.value,
+        gordura: formAdicionar.gordura.value,
+        imc: (formAdicionar.peso.value / (formAdicionar.altura.value * formAdicionar.altura.value)).toFixed(2)
+    };
 
-		const dados = await resposta.json(); // converte a resposta em objeto JS
+    // Insere o novo paciente na tela
+    adicionarPacienteNaTabela(pacienteAdicionado);
 
-		// Adiciona cada paciente vindo do arquivo ao nosso array local
-		dados.forEach((paciente) => {
-			adicionarPaciente(paciente.nome, paciente.email, paciente.nascimento);
-		});
+    // Atualiza o contador de origem Manual
+    contadorManual++;
+    if (spanContadorManual) spanContadorManual.textContent = contadorManual;
 
-		renderizarTabela();
-	} catch (erro) {
-		console.error('Não foi possível carregar os pacientes:', erro);
-		mensagemCarregando.textContent =
-			'Erro ao carregar pacientes. Veja o console para mais detalhes.';
-		return; // sai da função sem esconder a mensagem de erro
-	}
-
-	mensagemCarregando.textContent =
-		'Dados carregados com sucesso.';
-	// mensagemCarregando.style.display = 'none'; // esconde "Carregando..." em caso de sucesso
-}
-
-formulario.addEventListener('submit', (event) => {
-	event.preventDefault();
-
-	const nome = document.getElementById('nome').value;
-	const email = document.getElementById('email').value;
-	const nascimento = document.getElementById('nascimento').value;
-
-	adicionarPaciente(nome, email, nascimento);
-	renderizarTabela();
-
-	formulario.reset();
+    // Limpa os campos do formulário para o próximo cadastro
+    formAdicionar.reset();
 });
 
-// Assim que o script carrega, já dispara a busca dos dados iniciais
-carregarPacientesIniciais();
+// Inicia o processo de busca assim que o script for lido
+buscarPacientes();
